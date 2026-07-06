@@ -1,0 +1,78 @@
+# Terraform Directories
+.terraform/
+.terraform/*
+
+
+# Terraform State Files
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+
+# Terraform Plan Files
+
+*.tfplan
+*.plan
+tfplan
+
+
+# Terraform CLI Configuration
+
+.terraformrc
+terraform.rc
+
+
+# Sensitive Variable Files
+
+*.auto.tfvars
+*.auto.tfvars.json
+
+# Ignore local tfvars containing secrets
+terraform.tfvars
+terraform.tfvars.json
+
+# Uncomment if you use environment-specific tfvars with secrets
+# dev.tfvars
+# qa.tfvars
+# prod.tfvars
+
+
+# Override Files
+
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+
+# Dependency Lock File
+
+# Uncomment ONLY if you don't want to track provider versions.
+# Recommended: Keep this file in Git.
+# .terraform.lock.hcl
+
+
+# Logs
+
+*.log
+
+
+# IDE Files
+
+.vscode/
+.idea/
+*.swp
+*.swo
+
+
+# OS Files
+
+.DS_Store
+Thumbs.db
+
+# ---------------------------------------
+# Temporary Files
+# ---------------------------------------
+*.tmp
+*.bak
