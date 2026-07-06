@@ -6,20 +6,20 @@ on:
       - main
 
 jobs:
-  terraform:
+  plan:
     runs-on: ubuntu-latest
 
     steps:
-      - name: checkout Repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
       
-      - name: setup Terraform
+      - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
       
       - name: check Terraform Formatting
         run: terraform fmt -check
 
-      - name: configure with AWS credentials
+      - name: Configure with AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with: 
           aws-access-key-id: ${{secrets.AWS_ACCESS_KEY_ID}}
@@ -37,7 +37,43 @@ jobs:
       
       - name: Upload Terraform Plan
         uses: actions/upload-artifact@v4
-
         with:
           name: terraform-plan
           path: tfplan
+  
+  apply:
+    name: Terraform Apply
+    needs: plan
+    runs-on: ubuntu-latest
+
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{secrets.AWS_ACCESS_KEY_ID}}
+          aws-secret-access_key: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+          aws-region: ap-south-1
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan
+        
+      - name: Verify Download Files
+        run: ls -lah
+      
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+
