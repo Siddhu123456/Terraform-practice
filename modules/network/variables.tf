@@ -35,7 +35,7 @@ variable "vpc_cidr" {
 variable "subnet_configurations" {
   description = "configurations for public and private subnets."
   type = map(object({
-    subnet_number = number
+    subnet_number           = number
     az                      = string
     map_public_ip_on_launch = bool
     name                    = string

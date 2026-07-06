@@ -10,7 +10,7 @@ variable "db_subnet_ids" {
 }
 
 variable "db_security_group_id" {
-    description = "Security group ID."
+  description = "Security group ID."
 
-    type = string
+  type = string
 }

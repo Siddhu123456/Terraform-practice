@@ -43,7 +43,7 @@ module "s3_buckets" {
 module "rds" {
   source = "./modules/rds"
 
-  db_subnet_ids = module.network.db_private_subnet_ids
-  vpc_id        = module.network.vpc_id
+  db_subnet_ids        = module.network.db_private_subnet_ids
+  vpc_id               = module.network.vpc_id
   db_security_group_id = module.security_group.db_security_group_id
 }

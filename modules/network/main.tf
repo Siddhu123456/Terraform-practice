@@ -9,9 +9,9 @@ resource "aws_vpc" "this" {
 
 #creating subnets using for_each
 resource "aws_subnet" "this" {
-  for_each                = var.subnet_configurations
-  vpc_id                  = aws_vpc.this.id
-  cidr_block              = cidrsubnet(
+  for_each = var.subnet_configurations
+  vpc_id   = aws_vpc.this.id
+  cidr_block = cidrsubnet(
     var.vpc_cidr,
     8,
     each.value.subnet_number
