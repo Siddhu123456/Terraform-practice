@@ -28,10 +28,6 @@ terraform.rc
 *.auto.tfvars
 *.auto.tfvars.json
 
-# Ignore local tfvars containing secrets
-terraform.tfvars
-terraform.tfvars.json
-
 # Uncomment if you use environment-specific tfvars with secrets
 # dev.tfvars
 # qa.tfvars
