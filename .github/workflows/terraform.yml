@@ -7,7 +7,7 @@ on:
 
 jobs:
   plan:
-    runs-on: self-hosted
+    runs-on: aws-hosted
 
     steps:
       - name: Checkout Repository
@@ -44,7 +44,7 @@ jobs:
   apply:
     name: Terraform Apply
     needs: plan
-    runs-on: self-hosted
+    runs-on: aws-hosted
 
     environment:
       name: production
@@ -76,4 +76,4 @@ jobs:
       
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
-
+  
