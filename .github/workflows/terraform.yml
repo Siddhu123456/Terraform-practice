@@ -1,49 +1,139 @@
 name: Terraform CI
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
+
+  # =========================================================
+  # TERRAFORM PLAN
+  # =========================================================
   plan:
+    name: Terraform Plan
     runs-on: aws-hosted
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
-      
-      - name: check Terraform Formatting
+
+      - name: Check Terraform Formatting
         run: terraform fmt -check
 
-      - name: Configure with AWS credentials
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
-        with: 
-          aws-access-key-id: ${{secrets.AWS_ACCESS_KEY_ID}}
-          aws-secret-access-key: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
-      
+
+      - name: Verify AWS Identity
+        run: aws sts get-caller-identity
+
       - name: Terraform Init
         run: terraform init
-      
+
       - name: Terraform Validate
         run: terraform validate
-        
+
       - name: Terraform Plan
         run: terraform plan -var-file="terraform.tfvars" -out=tfplan
-      
+
+      - name: Convert Plan to JSON
+        run: terraform show -json tfplan > tfplan.json
+
       - name: Upload Terraform Plan
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan
-          path: tfplan
-  
+          path: |
+            tfplan
+            tfplan.json
+
+
+  # =========================================================
+  # AWS COST ESTIMATION
+  # =========================================================
+  cost-estimate:
+    name: AWS Cost Estimate
+    needs: plan
+    runs-on: aws-hosted
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Verify AWS Identity
+        run: aws sts get-caller-identity
+
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan
+
+      - name: Show Terraform Resources
+        run: |
+          echo "Resources in Terraform plan:"
+          jq -r '
+            .resource_changes[]
+            | select(.change.actions | index("create"))
+            | "\(.type) - \(.name)"
+          ' tfplan.json
+
+      - name: AWS Pricing Calculator
+        run: |
+          echo "AWS Pricing Calculator cost estimation stage"
+          echo "Terraform resources:"
+          jq -r '
+            .resource_changes[]
+            | select(.change.actions | index("create"))
+            | "\(.type) - \(.name)"
+          ' tfplan.json
+
+          echo ""
+          echo "AWS-native Pricing Calculator API can be integrated here."
+          echo "The Terraform plan itself is NOT directly accepted by the Pricing Calculator API."
+
+
+  # =========================================================
+  # SECURITY SCAN
+  # =========================================================
+  security-scan:
+    name: Terraform Security Scan
+    needs: plan
+    runs-on: aws-hosted
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          framework: terraform
+          soft_fail: false
+
+
+  # =========================================================
+  # APPLY
+  # =========================================================
   apply:
     name: Terraform Apply
-    needs: plan
+    needs:
+      - plan
+      - cost-estimate
+      - security-scan
+
     runs-on: aws-hosted
 
     environment:
@@ -55,12 +145,12 @@ jobs:
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
-      
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{secrets.AWS_ACCESS_KEY_ID}}
-          aws-secret-access-key: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
       - name: Terraform Init
@@ -70,10 +160,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: terraform-plan
-        
+
       - name: Verify Download Files
         run: ls -lah
-      
+
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
-  
