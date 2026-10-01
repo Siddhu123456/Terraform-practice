@@ -59,7 +59,7 @@ jobs:
   cost-estimate:
     name: AWS Cost Estimate
     needs: plan
-    runs-on: aws-hosted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
