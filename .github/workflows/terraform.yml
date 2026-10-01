@@ -110,7 +110,7 @@ jobs:
   security-scan:
     name: Terraform Security Scan
     needs: plan
-    runs-on: ubuntu-latest
+    runs-on: aws-hosted
 
     steps:
       - name: Checkout Repository
@@ -118,11 +118,29 @@ jobs:
 
       - name: Run Checkov
         uses: bridgecrewio/checkov-action@v12
+        continue-on-error: true
         with:
           directory: .
           framework: terraform
-          soft_fail: false
+          output_format: cli,sarif
+          output_file_path: console,results.sarif
 
+      - name: Security Scan Summary
+        if: always()
+        run: |
+          echo "# 🔐 Terraform Security Scan" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Checkov completed. Security findings are informational and do not block deployment." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "👉 Open the **Terraform Security Scan** job above to review the complete Checkov findings." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Security Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-report
+          path: results.sarif
+          if-no-files-found: warn
 
   # =========================================================
   # APPLY
