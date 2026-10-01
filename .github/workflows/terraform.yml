@@ -110,7 +110,7 @@ jobs:
   security-scan:
     name: Terraform Security Scan
     needs: plan
-    runs-on: aws-hosted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
