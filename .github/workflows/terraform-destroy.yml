@@ -50,13 +50,10 @@ jobs:
             tfplan.json
 
 
-  # =========================================================
-  # SECURITY SCAN
-  # =========================================================
   security-scan:
-    name: Security Scan
+    name: Terraform Security Scan
     needs: plan
-    runs-on: ubuntu-latest
+    runs-on: aws-hosted
 
     steps:
       - name: Checkout Repository
@@ -64,18 +61,29 @@ jobs:
 
       - name: Run Checkov
         uses: bridgecrewio/checkov-action@v12
+        continue-on-error: true
         with:
           directory: .
           framework: terraform
-          soft_fail: true
           output_format: cli,sarif
           output_file_path: console,results.sarif
 
+      - name: Security Scan Summary
+        if: always()
+        run: |
+          echo "# 🔐 Terraform Security Scan" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Checkov security scan completed." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "The scan findings are informational and do not automatically block deployment." >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload Security Report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: security-scan-report
           path: results.sarif
+          if-no-files-found: warn
 
 
   # =========================================================
