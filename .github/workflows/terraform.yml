@@ -59,49 +59,54 @@ jobs:
   cost-estimate:
     name: AWS Cost Estimate
     needs: plan
-    runs-on: ubuntu-latest
+    runs-on: aws-hosted
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-south-1
-
-      - name: Verify AWS Identity
-        run: aws sts get-caller-identity
 
       - name: Download Terraform Plan
         uses: actions/download-artifact@v4
         with:
           name: terraform-plan
 
-      - name: Show Terraform Resources
+      - name: Generate Cost Report
         run: |
-          echo "Resources in Terraform plan:"
+          echo "# 💰 AWS Cost Estimate" > cost-report.md
+          echo "" >> cost-report.md
+
+          echo "## Planned Resources" >> cost-report.md
+          echo "" >> cost-report.md
+
           jq -r '
             .resource_changes[]
-            | select(.change.actions | index("create"))
-            | "\(.type) - \(.name)"
-          ' tfplan.json
+            | select(
+                (.change.actions | index("create"))
+                or
+                (.change.actions | index("update"))
+              )
+            | "- **\(.type)** — `\(.name)`"
+          ' tfplan.json >> cost-report.md
 
-      - name: AWS Pricing Calculator
+          echo "" >> cost-report.md
+
+          echo "## Cost Estimation" >> cost-report.md
+          echo "" >> cost-report.md
+          echo "> AWS Pricing Calculator is required to calculate the actual estimated cost for these resources." >> cost-report.md
+          echo "" >> cost-report.md
+          echo "The Terraform plan does not directly contain AWS pricing information." >> cost-report.md
+
+          cat cost-report.md
+
+      - name: Add Cost Report to GitHub Summary
         run: |
-          echo "AWS Pricing Calculator cost estimation stage"
-          echo "Terraform resources:"
-          jq -r '
-            .resource_changes[]
-            | select(.change.actions | index("create"))
-            | "\(.type) - \(.name)"
-          ' tfplan.json
+          cat cost-report.md >> "$GITHUB_STEP_SUMMARY"
 
-          echo ""
-          echo "AWS-native Pricing Calculator API can be integrated here."
-          echo "The Terraform plan itself is NOT directly accepted by the Pricing Calculator API."
+      - name: Upload Cost Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: cost-estimate-report
+          path: cost-report.md
 
 
   # =========================================================
